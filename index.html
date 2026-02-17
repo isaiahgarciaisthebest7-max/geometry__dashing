@@ -1,0 +1,58 @@
+    <!-- Existing canvas and ui here -->
+
+    <script>
+        // Unified pointer input (fixes most click/tap not registering bugs)
+        const canvas = document.getElementById('canvas');
+
+        function onPointerDown(e) {
+            e.preventDefault();           // Critical: stops scroll/zoom on touch
+            if (game.state === 'game' && !game.paused) {
+                game.player.jump(true);   // start jump / hold
+                game.recordReplay('jump');
+            }
+            if (game.state === 'editor') {
+                editor.mouse.down = true;
+                editor.handleInput(true);
+            }
+        }
+
+        function onPointerUp(e) {
+            e.preventDefault();
+            if (game.state === 'game' && !game.paused) {
+                game.player.jump(false);  // release hold (for ship/ufo/wave/etc)
+                game.recordReplay('release');
+            }
+            if (game.state === 'editor') {
+                editor.mouse.down = false;
+            }
+        }
+
+        // Use pointer events (unifies mouse + touch + pen)
+        canvas.addEventListener('pointerdown', onPointerDown, {passive: false});
+        canvas.addEventListener('pointerup',   onPointerUp,   {passive: false});
+        canvas.addEventListener('pointercancel', onPointerUp, {passive: false}); // safety
+
+        // Keep keyboard as fallback / primary
+        document.addEventListener('keydown', e => {
+            if (['Space', 'ArrowUp'].includes(e.code)) {
+                e.preventDefault();
+                game.keys.add(e.code);
+                if (game.state === 'game' && !game.paused) game.player.jump(true);
+            }
+            if (e.code === 'Escape') game.togglePause();
+        });
+
+        document.addEventListener('keyup', e => {
+            game.keys.delete(e.code);
+            if (['Space', 'ArrowUp'].includes(e.code)) {
+                if (game.state === 'game' && !game.paused) game.player.jump(false);
+            }
+        });
+
+        // Optional: prevent whole-page touch move (common mobile bug)
+        document.addEventListener('touchmove', e => {
+            if (e.target === canvas || canvas.contains(e.target)) {
+                e.preventDefault();
+            }
+        }, {passive: false});
+    </script>
